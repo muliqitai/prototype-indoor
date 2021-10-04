@@ -34,10 +34,10 @@ import pandas as pd
 import sys
 from sklearn.preprocessing import scale
 from timeit import default_timer as timer
-from keras.models import load_model
+
 import os.path as osp
-from keras import backend as K
-#from tensorflow import keras
+
+from tensorflow import keras
 ### global constant variables
 #------------------------------------------------------------------------
 # general
@@ -108,10 +108,6 @@ def dnn_model():
         os.environ["CUDA_VISIBLE_DEVICES"] = ''
     import tensorflow as tf
     tf.random.set_seed(random_seed)  # initialize random seed generator of tensorflow
-    from tensorflow import keras
-    import keras
-
-    import tensorflow.keras as keras
     from tensorflow.keras.layers import Dense, Dropout
     from tensorflow.keras import Sequential
     from tensorflow.keras.models import load_model

@@ -31,7 +31,6 @@ train_df = pd.read_csv(path_train, header=0)  # pass header=0 to be able to repl
 train_AP_features = scale(np.asarray(train_df.iloc[0:1, 0:520]).astype(float),
                           axis=1)  # convert integer to float and scale jointly (axis=1)
 train_df['REFPOINT'] = train_df.apply(lambda row: str(int(row['SPACEID'])) + str(int(row['RELATIVEPOSITION'])), axis=1)
-
 # turn the given validation set into a testing set
 test_AP_features = scale(np.asarray(test_df.iloc[0:1, 0:520]).astype(float),
                          axis=1)  # convert integer to float and scale jointly (axis=1)

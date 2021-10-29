@@ -31,7 +31,8 @@ train_df = pd.read_csv(path_train, header=0)  # pass header=0 to be able to repl
 
 test=test_df.sample(n=1)
 train=train_df.sample(n=1)
-
+testrow=test.index.tolist()[0]
+trainrow=train.index.tolist()[0]
 train_AP_features = scale(np.asarray(train_df.iloc[:,0:520]).astype(float),axis=1)  # convert integer to float and scale jointly (axis=1)
 train_df['REFPOINT'] = train_df.apply(lambda row: str(int(row['SPACEID'])) + str(int(row['RELATIVEPOSITION'])), axis=1)# add a new column
 blds = np.unique(train_df[['BUILDINGID']])
@@ -74,10 +75,10 @@ print("\nPart 3: evaluating the model ...")
 
 # calculate the building and floor estimation
 preds = model.predict(test_AP_features, batch_size=batch_size)  #information about the buidling...
-blds_results = (np.equal(np.argmax(blds, axis=1), np.argmax(preds[:, :3], axis=1))).astype(int)
-flrs_results = (np.equal(np.argmax(flrs, axis=1), np.argmax(preds[:, 3:8], axis=1))).astype(int)
+blds_results = (np.equal(np.argmax(blds, axis=1), np.argmax(preds[0:1, :3], axis=1))).astype(int)
+flrs_results = (np.equal(np.argmax(flrs, axis=1), np.argmax(preds[0:1, 3:8], axis=1))).astype(int)
 mask = np.logical_and(blds_results, flrs_results)
-rfps = (preds[mask])[:, 8:118]
+#rfps = (preds[mask])[0:1, 8:118]
 print('preds',preds)
 print('building',blds_results)
 print('floor',flrs_results)
@@ -115,7 +116,7 @@ for i in range(n_success):
     for j in idxs[i]:
         rfp = np.zeros(110)
         rfp[j] = 1
-        rows = np.where((train_labels == np.concatenate((blds[i], flrs[i], rfp))).all(axis=1)) # tuple of row indexes
+        rows = np.where((train_labels[trainrow]== np.concatenate((blds[i], flrs[i], rfp))).all(axis=1)) # tuple of row indexes
         if rows[0].size > 0:
             if rfps[i][j] >= threshold[i]:
                 xs.append(train.loc[train.index[rows[0][0]], 'LONGITUDE'])

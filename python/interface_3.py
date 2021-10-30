@@ -19,11 +19,11 @@ scaling=0.0
 #user part
 
 path_train = '../data/UJIIndoorLoc/trainingData2.csv'
-path_validation = '../data/UJIIndoorLoc/validationData2.csv'
-#a = st.file_uploader("Choose a CSV file", type="csv")
+#path_validation = '../data/UJIIndoorLoc/validationData2.csv'
+a = st.file_uploader("Choose a CSV file", type="csv")
 
-#if a is not None:
-    #path_validation = a
+if a is not None:
+    path_validation = a
 test_df = pd.read_csv(path_validation, header=0)
 # turn the given validation set into a testing set
 
@@ -90,9 +90,9 @@ if mask == [False]:
 #print('rfps',preds[0:1, 8:118])
 #print('rfps',rfps)
 
-st.write('preds',preds)
-st.write('building',blds_results)
-st.write('floor',flrs_results)
+#st.write('preds',preds)
+st.write('building',blds_results[0])
+st.write('floor',flrs_results[0])
 #st.write('rfps',rfps)
 #print('blds',preds[:, :3])
 #print('flrs',preds[:, 3:8])
@@ -118,26 +118,28 @@ for i in range(n_success):
     ws = []
     for j in idxs[i]:
         rfp = np.zeros(110)
-        hits = np.where(train_labels[testrow] == np.concatenate((blds[i], flrs[i], rfp)))
         rfp[j] = 1
-        rows = np.where((train_labels[testrow]== np.concatenate((blds[i], flrs[i], rfp))).all()) # tuple of row indexes
-        if rows[0].size > 0:
-            if rfps[i][j] >= threshold[i]:
-                xs.append(train.loc[train.index[rows[0][0]], 'LONGITUDE'])
-                ys.append(train.loc[train.index[rows[0][0]], 'LATITUDE'])
-                ws.append(rfps[i][j])
+        #rows = np.where((train_labels[testrow]== np.concatenate((blds[i], flrs[i], rfp))).all()) # tuple of row indexes
+        rows=[]
+        rows.append(testrow)
+        if rows[0] > 0:
+            if rfps[0][j] >= threshold[i]:
+                xs.append(train_df.loc[train_df.index[rows[0]], 'LONGITUDE'])
+                ys.append(train_df.loc[train_df.index[rows[0]], 'LATITUDE'])
+                ws.append(rfps[0][j])
     if len(xs) > 0:
         sum_pos_err += math.sqrt((np.mean(xs) - x_test_utm[i]) ** 2 + (np.mean(ys) - y_test_utm[i]) ** 2)
         sum_pos_err_weighted += math.sqrt((np.average(xs, weights=ws) - x_test_utm[i]) ** 2 + (np.average(ys, weights=ws) - y_test_utm[i]) ** 2)
-        Cor[i].append(np.average(xs, weights=ws))
-        Cor[i].append(np.average(ys, weights=ws))
+        Cor[0].append(np.average(xs, weights=ws))
+        Cor[0].append(np.average(ys, weights=ws))
         #print('x_1,y_1',np.average(xs, weights=ws),np.average(ys, weights=ws))
     else:
         n_loc_failure += 1
         key = str(np.argmax(blds[i])) + '-' + str(np.argmax(flrs[i]))
-if mask == [True]:
-    print('Cor',Cor)
-
+    if mask == [True]:
+        print('Cor',Cor)
+        print('x,y:', Cor[0][0], Cor[0][1])
+        st.write('x,y:', Cor[0][0],Cor[0][1])
 
 
 

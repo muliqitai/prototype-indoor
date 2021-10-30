@@ -30,9 +30,10 @@ test_df = pd.read_csv(path_validation, header=0)
 train_df = pd.read_csv(path_train, header=0)  # pass header=0 to be able to replace existing names
 
 test=test_df.sample(n=1)
-train=train_df.sample(n=1)
-testrow=test.index.tolist()[0]
-trainrow=train.index.tolist()[0]
+testrow=test.index.tolist()[0]   #record the number of row
+train=train_df.sample(n=testrow)
+#trainrow=train.index.tolist()[0] #record the number of row
+
 train_AP_features = scale(np.asarray(train_df.iloc[:,0:520]).astype(float),axis=1)  # convert integer to float and scale jointly (axis=1)
 train_df['REFPOINT'] = train_df.apply(lambda row: str(int(row['SPACEID'])) + str(int(row['RELATIVEPOSITION'])), axis=1)# add a new column
 blds = np.unique(train_df[['BUILDINGID']])
@@ -50,7 +51,7 @@ for bld in blds:
         x_avg[str(bld) + '-' + str(flr)] = np.mean(train_df.loc[cond, 'LONGITUDE'])
         y_avg[str(bld) + '-' + str(flr)] = np.mean(train_df.loc[cond, 'LATITUDE'])
 
-test_AP_features = scale(np.asarray(test.iloc[:,0:520]).astype(float),axis=1)  # convert integer to float and scale jointly (axis=1)
+
 blds_all = np.asarray(pd.get_dummies(pd.concat([train_df['BUILDINGID'], test_df['BUILDINGID']]))) # for consistency in one-hot encoding for both dataframes
 flrs_all = np.asarray(pd.get_dummies(pd.concat([train_df['FLOOR'], test_df['FLOOR']])))
 len_train = len(train_df)
@@ -74,6 +75,7 @@ flrs = flrs_all[len_train:]
 print("\nPart 3: evaluating the model ...")
 
 # calculate the building and floor estimation
+test_AP_features = scale(np.asarray(test.iloc[:,0:520]).astype(float),axis=1)  # convert integer to float and scale jointly (axis=1)
 preds = model.predict(test_AP_features, batch_size=batch_size)  #information about the buidling...
 blds_results = (np.equal(np.argmax(blds, axis=1), np.argmax(preds[0:1, :3], axis=1))).astype(int)
 flrs_results = (np.equal(np.argmax(flrs, axis=1), np.argmax(preds[0:1, 3:8], axis=1))).astype(int)
@@ -109,14 +111,16 @@ sum_pos_err_weighted = 0.0
 idxs = np.argpartition(rfps, -N)[:, -N:]  # (unsorted) indexes of up to N nearest neighbors
 threshold = scaling*np.amax(rfps, axis=1)
 Cor = [[] for _ in range(n_success)]
+
 for i in range(n_success):
     xs = []
     ys = []
     ws = []
     for j in idxs[i]:
         rfp = np.zeros(110)
+        hits = np.where(train_labels[testrow] == np.concatenate((blds[i], flrs[i], rfp)))
         rfp[j] = 1
-        rows = np.where((train_labels[trainrow]== np.concatenate((blds[i], flrs[i], rfp))).all(axis=1)) # tuple of row indexes
+        rows = np.where((train_labels[testrow]== np.concatenate((blds[i], flrs[i], rfp))).all()) # tuple of row indexes
         if rows[0].size > 0:
             if rfps[i][j] >= threshold[i]:
                 xs.append(train.loc[train.index[rows[0][0]], 'LONGITUDE'])

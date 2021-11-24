@@ -19,21 +19,27 @@ scaling=0.0
 #user part
 
 path_train = '../data/UJIIndoorLoc/trainingData2.csv'
-#path_validation = '../data/UJIIndoorLoc/validationData2.csv'
-a = st.file_uploader("Choose a CSV file", type="csv")
+path_validation = '../data/UJIIndoorLoc/validationData2.csv'
+#a = st.file_uploader("Choose a CSV file", type="csv")
 
-if a is not None:
-    path_validation = a
+#if a is not None:
+    #path_validation = a
 test_df = pd.read_csv(path_validation, header=0)
 # turn the given validation set into a testing set
+train_df = pd.read_csv(path_train, header=0)
+#test=test_df.sample(n=1)
+#testrow=test.index.tolist()[0]   #record the number of row
 
-train_df = pd.read_csv(path_train, header=0)  # pass header=0 to be able to replace existing names
-
-test=test_df.sample(n=1)
-testrow=test.index.tolist()[0]   #record the number of row
-train=train_df.sample(n=testrow)
+number = st.number_input('Insert a number（the row number of test dataset that you choose）',min_value=2, max_value=1112)
+st.write('The current number is ', number)
+test=test_df.iloc[[number]]
+testrow=number
+print(test)
+st.write('The original building',test['BUILDINGID'])
+st.write('The original floor',test['FLOOR'])
+st.write('The original x,y',test['LONGITUDE'],test['LATITUDE'])
+#train=train_df.sample(n=testrow)
 #trainrow=train.index.tolist()[0] #record the number of row
-
 train_AP_features = scale(np.asarray(train_df.iloc[:,0:520]).astype(float),axis=1)  # convert integer to float and scale jointly (axis=1)
 train_df['REFPOINT'] = train_df.apply(lambda row: str(int(row['SPACEID'])) + str(int(row['RELATIVEPOSITION'])), axis=1)# add a new column
 blds = np.unique(train_df[['BUILDINGID']])
@@ -63,9 +69,9 @@ train_labels = np.concatenate((blds, flrs, rfps), axis=1)
 
 # turn the given validation set into a testing set
  # convert integer to float and scale jointly (axis=1)
-blds_all = np.asarray(pd.get_dummies(pd.concat([train['BUILDINGID'], test['BUILDINGID']]))) # for consistency in one-hot encoding for both dataframes
-flrs_all = np.asarray(pd.get_dummies(pd.concat([train['FLOOR'], test['FLOOR']])))
-len_train = len(train)
+blds_all = np.asarray(pd.get_dummies(pd.concat([train_df['BUILDINGID'], test['BUILDINGID']]))) # for consistency in one-hot encoding for both dataframes
+flrs_all = np.asarray(pd.get_dummies(pd.concat([train_df['FLOOR'], test['FLOOR']])))
+len_train = len(train_df)
 x_test_utm = np.asarray(test['LONGITUDE'])
 y_test_utm = np.asarray(test['LATITUDE'])
 blds = blds_all[len_train:]
@@ -104,6 +110,7 @@ y_test_utm = y_test_utm[mask]
 blds = blds[mask]
 flrs = flrs[mask]
 rfps = (preds[mask])[0:1, 8:118]
+
 n_success = len(blds)  # number of correct building and floor location
 n_loc_failure = 0
 sum_pos_err = 0.0
@@ -128,18 +135,29 @@ for i in range(n_success):
                 ys.append(train_df.loc[train_df.index[rows[0]], 'LATITUDE'])
                 ws.append(rfps[0][j])
     if len(xs) > 0:
-        sum_pos_err += math.sqrt((np.mean(xs) - x_test_utm[i]) ** 2 + (np.mean(ys) - y_test_utm[i]) ** 2)
-        sum_pos_err_weighted += math.sqrt((np.average(xs, weights=ws) - x_test_utm[i]) ** 2 + (np.average(ys, weights=ws) - y_test_utm[i]) ** 2)
+        sum_pos_err += math.sqrt(((np.mean(xs) - x_test_utm[i]) ** 2) + ((np.mean(ys) - y_test_utm[i]) ** 2))
+        #sum_pos_err_weighted += math.sqrt((np.average(xs, weights=ws) - x_test_utm[i]) ** 2 + (np.average(ys, weights=ws) - y_test_utm[i]) ** 2)
         Cor[0].append(np.average(xs, weights=ws))
         Cor[0].append(np.average(ys, weights=ws))
         #print('x_1,y_1',np.average(xs, weights=ws),np.average(ys, weights=ws))
     else:
         n_loc_failure += 1
         key = str(np.argmax(blds[i])) + '-' + str(np.argmax(flrs[i]))
+        pos_err = math.sqrt((x_avg[key] - x_test_utm[i]) ** 2 + (y_avg[key] - y_test_utm[i]) ** 2)
+        sum_pos_err += pos_err
+
+
     if mask == [True]:
         print('Cor',Cor)
         print('x,y:', Cor[0][0], Cor[0][1])
-        st.write('x,y:', Cor[0][0],Cor[0][1])
+        a=float(test['LONGITUDE'])
+        b=float(test['LATITUDE'])
+        print( 'true x [m]',float(test['LONGITUDE']))
+        print( 'true y [m]',float(test['LATITUDE']))
+        mean_pos_err = sum_pos_err / n_success
+        st.write('x,y:', Cor[0][0], Cor[0][1])
+        print('positioning error [m]', mean_pos_err)
+        st.write('positioning error [m]', mean_pos_err)
 
 
 
